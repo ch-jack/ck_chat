@@ -7,7 +7,7 @@ FiveM 富文本 NUI 聊天资源，支持 ESX / QBCore / ox_inventory / ck_realp
 作者: JACK  
 联系方式: QQ 2518926462
 
-![主界面](docs/images/overview.png)
+![全服聊天](docs/images/feature-global-chat.png)
 
 ## 特性
 
@@ -17,6 +17,7 @@ FiveM 富文本 NUI 聊天资源，支持 ESX / QBCore / ox_inventory / ck_realp
 - 支持 ck_realplate 的 `realplate / realplate2 / realplate3` 三个真实车牌槽位；有几个显示几个，没有真实车牌时只显示原车库车牌。
 - 支持全服、私聊、自定义频道、职业预设频道。
 - 支持文字、系统公告、GM 命令提示、道具链接、车辆链接、图片收藏、坐标分享、红包。
+- 支持动态头像框和聊天框展示，可通过管理命令给玩家设置。
 - GitHub Actions 自动校验并打包 `ck_chat.zip`。
 
 ## 依赖
@@ -91,7 +92,7 @@ CKChatConfig.Garage = {
 
 ## 功能用法
 
-### 1. 打开聊天
+### 1. 全服聊天
 
 默认按键: `T`
 
@@ -101,22 +102,45 @@ CKChatConfig.Garage = {
 openNewChat
 ```
 
-聊天支持 FiveM 颜色码，例如:
+全服频道是默认频道，所有在线玩家都能看到消息；支持普通文本、系统公告、GM 提示和 FiveM 颜色码。
 
 ```text
 ^3黄色文字 ^7恢复默认
 ```
 
-![主界面](docs/images/overview.png)
+![全服聊天](docs/images/feature-global-chat.png)
 
-### 2. 频道
+### 2. 动态头像框和聊天框
+
+管理员可以给玩家设置头像框和聊天框效果，聊天消息会展示玩家头像、等级、职业、频道和动态框样式。
+
+命令:
+
+```text
+/ckchat_frame <玩家ID> <头像框ID>
+/ckchat_boxframe <玩家ID> <聊天框ID>
+```
+
+![动态头像框和聊天框](docs/images/feature-dynamic-frames.png)
+
+### 3. 私聊
+
+使用方法:
+
+1. 点击顶部 `私聊`。
+2. 在下拉框选择在线玩家。
+3. 输入消息并发送。
+
+私聊只发送给指定玩家，右上角会显示当前私聊选择状态。
+
+![私聊](docs/images/feature-private-chat.png)
+
+### 4. 自定义频道
 
 支持:
 
-- 全服: 默认频道，全服可见。
-- 私聊: 选择在线玩家后发送。
-- 自定义频道: 输入频道名后加入。
-- 预设职业频道: 在 `config.lua` 的 `PresetChannels` 配置，例如警察、医护。
+- 手动输入自定义频道名。
+- 选择 `config.lua` 里的预设职业频道，例如警察、医护。
 
 使用方法:
 
@@ -131,9 +155,24 @@ openNewChat
 - 预设职业频道不扣费。
 - `CKChatConfig.CustomChannelJoinCost = 0` 时自定义频道免费。
 
-![频道](docs/images/custom-channel.png)
+![自定义频道](docs/images/feature-custom-channel.png)
 
-### 3. 道具链接和 OX metadata
+### 5. 收藏发送图片
+
+使用方法:
+
+1. 点击 `收藏`。
+2. 输入图片 URL 并收藏。
+3. 点击收藏图发送图片。
+
+说明:
+
+- 图片 URL 必须是 `http://` 或 `https://`。
+- 收藏数据保存在玩家本地 NUI `localStorage`。
+
+![收藏发送图片](docs/images/feature-favorite-image.png)
+
+### 6. 发送物品链接和 OX metadata
 
 使用方法:
 
@@ -159,9 +198,9 @@ metadata 会显示为详情字段，例如:
 元数据:durability
 ```
 
-![道具链接](docs/images/link-panel.png)
+![发送物品链接](docs/images/feature-item-link.png)
 
-### 4. 车辆链接和 ck_realplate 真实车牌
+### 7. 发送载具链接和 ck_realplate 真实车牌
 
 使用方法:
 
@@ -187,9 +226,9 @@ ck_realplate 支持:
 - 如果三个真实车牌字段都没有值，只显示一条原车库车牌。
 - 详情中保留 `原车库车牌`，方便排查。
 
-![车辆链接](docs/images/vehicle-link.png)
+![发送载具链接](docs/images/feature-vehicle-link.png)
 
-### 5. 红包
+### 8. 发红包
 
 使用方法:
 
@@ -204,24 +243,9 @@ ck_realplate 支持:
 - 最大金额由 `server.lua` 内 `MAX_REDPACKET_AMOUNT` 控制，默认 `50000`。
 - 扣款和加款账户由 `CKChatConfig.MoneyAccount` 控制。
 
-![红包](docs/images/redpacket-panel.png)
+![发红包](docs/images/feature-redpacket.png)
 
-### 6. 图片收藏
-
-使用方法:
-
-1. 点击 `收藏`。
-2. 输入图片 URL 并收藏。
-3. 点击收藏图发送图片。
-
-说明:
-
-- 图片 URL 必须是 `http://` 或 `https://`。
-- 收藏数据保存在玩家本地 NUI `localStorage`。
-
-![图片收藏](docs/images/favorite-images.png)
-
-### 7. 坐标分享
+### 9. 发位置
 
 使用方法:
 
@@ -234,9 +258,9 @@ ck_realplate 支持:
 - 服务端保存坐标 30 分钟。
 - 客户端会调用 `SetNewWaypoint` 并创建路线 blip。
 
-![坐标分享](docs/images/overview.png)
+![发位置](docs/images/feature-position.png)
 
-### 8. 管理命令
+### 10. 管理命令
 
 命令:
 
@@ -255,7 +279,7 @@ ck_realplate 支持:
 - 框架 group 在 `CKChatConfig.AdminGroups` 中配置。
 - 同时支持 ACE `group.<name>` 和 `command.ckchat_admin`。
 
-![系统公告](docs/images/overview.png)
+![系统公告](docs/images/feature-global-chat.png)
 
 ## 导出
 
