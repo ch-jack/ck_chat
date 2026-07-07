@@ -1,0 +1,30 @@
+name: Build ck_chat
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  package:
+    name: Publish package artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate release package
+        run: |
+          test -f ck_chat.zip
+          test -s ck_chat.zip
+          sha256sum ck_chat.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ck_chat
+          path: ck_chat.zip
