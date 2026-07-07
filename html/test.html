@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ck_chat test</title>
+    <link rel="stylesheet" href="index.css">
+    <style>
+        body {
+            background:
+                linear-gradient(90deg, rgba(8, 13, 17, 0.72), rgba(8, 13, 17, 0.18)),
+                url("https://images.unsplash.com/photo-1517994112540-009c47ea476b?auto=format&fit=crop&w=1800&q=80") center/cover fixed;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <script>
+        window.CK_CHAT_TEST = true;
+        localStorage.setItem('ck_chat.favoriteImages', JSON.stringify([
+            {
+                name: 'Horizon测试图',
+                url: 'https://images.unsplash.com/photo-1517994112540-009c47ea476b?auto=format&fit=crop&w=480&q=80'
+            }
+        ]));
+
+        const now = () => Math.floor(Date.now() / 1000);
+        const me = {
+            id: 88,
+            name: '测试玩家',
+            avatar: 'https://q1.qlogo.cn/g?b=qq&nk=10000&s=100',
+            chatFrameId: 'dynamic_avatar_01',
+            chatBoxFrameId: 'dynamic_chatbox_01',
+            level: 46,
+            gang: 'Horizon',
+            job: 'police'
+        };
+
+        const presetChannels = [
+            { id: 'police', label: '警察', requireJob: true, jobs: ['police'] },
+            { id: 'medical', label: '医护', requireJob: true, jobs: ['ambulance', 'ems', 'doctor'] }
+        ];
+
+        const itemCatalog = {
+            categories: [
+                { id: 'chatframe', label: '头像框' },
+                { id: 'drugs', label: '药品' }
+            ],
+            items: [
+                {
+                    name: 'dynamic_avatar_01',
+                    label: 'Horizon蓝色头像框',
+                    type: 'chatframe',
+                    typeLabel: '头像框',
+                    text: '使用后切换聊天头像框为Horizon蓝',
+                    details: [
+                        { key: 'name', label: '物品ID', value: 'dynamic_avatar_01' },
+                        { key: 'type', label: '类型', value: 'chatframe' },
+                        { key: 'weight', label: '重量', value: '50' },
+                        { key: 'vend', label: '可寄售', value: '1' }
+                    ],
+                    meta: { name: 'dynamic_avatar_01', type: 'chatframe', weight: 50, vend: 1 }
+                },
+                {
+                    name: 'bandage',
+                    label: '绷带',
+                    type: 'drugs',
+                    typeLabel: '药品',
+                    text: '恢复生命:30',
+                    details: [
+                        { key: 'name', label: '物品ID', value: 'bandage' },
+                        { key: 'limit', label: '叠加上限', value: '0' },
+                        { key: 'weight', label: '重量', value: '200' },
+                        { key: 'shop', label: '商店价格', value: '5000' }
+                    ],
+                    meta: { name: 'bandage', type: 'drugs', limit: 0, weight: 200, shop: 5000 }
+                }
+            ]
+        };
+
+        const vehicleCatalog = {
+            categories: [
+                { id: 'sports', label: '跑车' },
+                { id: 'super', label: '超级跑车' }
+            ],
+            items: [
+                {
+                    model: 'gtr',
+                    label: 'Nissan GT-R R35',
+                    type: 'sports',
+                    typeLabel: '跑车',
+                    brand: 'Nissan',
+                    year: '2017',
+                    details: [
+                        { key: 'model', label: '模型', value: 'gtr' },
+                        { key: 'brand', label: '品牌', value: 'Nissan' },
+                        { key: 'year', label: '年份', value: '2017' },
+                        { key: 'costs', label: '价格', value: '85000000' }
+                    ],
+                    meta: { model: 'gtr', brand: 'Nissan', year: '2017', costs: 85000000 }
+                },
+                {
+                    model: 'adder',
+                    label: 'Truffade Adder',
+                    type: 'super',
+                    typeLabel: '超级跑车',
+                    brand: 'Truffade',
+                    year: '2013',
+                    details: [
+                        { key: 'model', label: '模型', value: 'adder' },
+                        { key: 'brand', label: '品牌', value: 'Truffade' },
+                        { key: 'year', label: '年份', value: '2013' }
+                    ],
+                    meta: { model: 'adder', brand: 'Truffade', year: '2013' }
+                }
+            ]
+        };
+
+        window.CKChatTest = {
+            handlePost(name, payload) {
+                const data = payload || {};
+                if (name === 'loaded') {
+                    setTimeout(seed, 20);
+                    return;
+                }
+                if (name === 'sendMessage') {
+                    if (handleCommand(data)) {
+                        return;
+                    }
+                    window.CKChat.receive({
+                        type: 'ck_chat:message',
+                        message: {
+                            id: `test:${Date.now()}`,
+                            ts: now(),
+                            channel: channelFromPayload(data),
+                            sender: me,
+                            body: buildBody(data)
+                        }
+                    });
+                }
+                if (name === 'action' && data.action === 'sharePosition') {
+                    window.CKChat.receive({ type: 'ck_chat:message', message: samplePosition() });
+                }
+                if (name === 'action' && data.action === 'joinChannel') {
+                    joinChannel(data);
+                }
+                if (name === 'action' && data.action === 'claimRedPacket') {
+                    window.CKChat.receive({
+                        type: 'ck_chat:message',
+                        message: sampleSystem('红包', '你抢到了测试红包 $520', 'success')
+                    });
+                }
+            }
+        };
+
+        function seed() {
+            window.CKChat.receive({
+                type: 'ck_chat:bootstrap',
+                data: {
+                    framework: 'ck',
+                    me,
+                    onlinePlayers: [
+                        me,
+                        { id: 7, name: 'Jack', avatar: 'https://q1.qlogo.cn/g?b=qq&nk=2518926462&s=100', chatFrameId: 'shuimo_01', level: 120, gang: 'Unite' },
+                        { id: 18, name: 'PartsLab', avatar: 'https://q1.qlogo.cn/g?b=qq&nk=654321&s=100', chatFrameId: 'fenleng_01', chatBoxFrameId: 'chatbox_07', level: 51, gang: 'Garage' }
+                    ],
+                    catalogs: {
+                        item: itemCatalog,
+                        vehicle: vehicleCatalog
+                    },
+                    channels: {
+                        presets: presetChannels
+                    }
+                }
+            });
+            window.CKChat.receive({
+                type: 'ck_chat:suggestion:addMany',
+                suggestions: [
+                    { name: '/gm', help: 'GM全频道系统公告', params: [{ name: '内容' }] },
+                    { name: '/w', help: '私聊玩家', params: [{ name: '玩家ID' }, { name: '内容' }] },
+                    { name: '/item', help: '发送道具链接', params: [{ name: '道具名' }] },
+                    { name: '/veh', help: '发送车辆信息链接', params: [{ name: '模型名' }] },
+                    { name: '/hb', help: '发送红包', params: [{ name: '金额' }, { name: '份数' }] }
+                ]
+            });
+            window.CKChat.receive({
+                type: 'ck_chat:messages',
+                messages: [
+                    sampleSystem('GM公告', '今晚 22:00 开启地平线街头赛，系统消息全频道提示。', 'gm'),
+                    {
+                        id: 'sample:mine',
+                        ts: now() - 110,
+                        channel: { id: 'global', label: '全服' },
+                        sender: me,
+                        body: { type: 'text', text: '^3我这条消息头像在右侧。^7' }
+                    },
+                    {
+                        id: 'sample:1',
+                        ts: now() - 90,
+                        channel: { id: 'global', label: '全服' },
+                        sender: {
+                            id: 12,
+                            name: 'HorizonRacer',
+                            avatar: 'https://q1.qlogo.cn/g?b=qq&nk=123456&s=100',
+                            chatFrameId: 'aurora_dream',
+                            level: 88,
+                            gang: 'Akina'
+                        },
+                        body: { type: 'text', text: '^3今晚跑山吗？^7 我带了新车。' }
+                    },
+                    {
+                        id: 'sample:2',
+                        ts: now() - 60,
+                        channel: { id: 'global', label: '全服' },
+                        sender: {
+                            id: 18,
+                            name: 'PartsLab',
+                            avatar: 'https://q1.qlogo.cn/g?b=qq&nk=654321&s=100',
+                            chatFrameId: 'fenleng_01',
+                            chatBoxFrameId: 'chatbox_07',
+                            level: 51,
+                            gang: 'Garage'
+                        },
+                        body: {
+                            type: 'link',
+                            text: '这段正文不会在卡片下重复显示',
+                            link: {
+                                linkType: 'vehicle',
+                                title: 'Nissan GT-R R35',
+                                subtitle: '跑车',
+                                payload: { model: 'gtr' },
+                                details: vehicleCatalog.items[0].details,
+                                meta: vehicleCatalog.items[0].meta
+                            }
+                        }
+                    },
+                    {
+                        id: 'sample:3',
+                        ts: now() - 45,
+                        channel: { id: 'global', label: '全服' },
+                        sender: {
+                            id: 7,
+                            name: 'Jack',
+                            avatar: 'https://q1.qlogo.cn/g?b=qq&nk=2518926462&s=100',
+                            chatFrameId: 'shuimo_01',
+                            level: 120,
+                            gang: 'Unite'
+                        },
+                        body: {
+                            type: 'link',
+                            link: {
+                                linkType: 'item',
+                                title: 'Horizon蓝色头像框',
+                                subtitle: '使用后切换聊天头像框为Horizon蓝',
+                                payload: { name: 'dynamic_avatar_01' },
+                                details: itemCatalog.items[0].details,
+                                meta: itemCatalog.items[0].meta
+                            }
+                        }
+                    },
+                    samplePosition(),
+                    {
+                        id: 'sample:4',
+                        ts: now() - 25,
+                        channel: { id: 'global', label: '全服' },
+                        sender: {
+                            id: 21,
+                            name: '红包玩家',
+                            avatar: 'https://q1.qlogo.cn/g?b=qq&nk=888888&s=100',
+                            chatFrameId: 'dynamic_avatar_02',
+                            level: 32,
+                            gang: ''
+                        },
+                        body: {
+                            type: 'redpacket',
+                            text: '开赛福利',
+                            redPacket: { id: 'hb:test', amount: 5000, count: 8, remainCount: 8 }
+                        }
+                    },
+                    {
+                        id: 'sample:image',
+                        ts: now() - 15,
+                        channel: { id: 'global', label: '全服' },
+                        sender: {
+                            id: 12,
+                            name: 'HorizonRacer',
+                            avatar: 'https://q1.qlogo.cn/g?b=qq&nk=123456&s=100',
+                            chatFrameId: 'aurora_dream',
+                            level: 88,
+                            gang: 'Akina'
+                        },
+                        body: {
+                            type: 'image',
+                            text: '收藏图片测试',
+                            image: {
+                                name: 'Horizon测试图',
+                                url: 'https://images.unsplash.com/photo-1517994112540-009c47ea476b?auto=format&fit=crop&w=480&q=80'
+                            }
+                        }
+                    }
+                ]
+            });
+            window.CKChat.receive({ type: 'ck_chat:open' });
+        }
+
+        function handleCommand(item) {
+            const text = String(item.text || '').trim();
+            if (!text.startsWith('/')) return false;
+            const command = text.split(/\s+/)[0].toLowerCase();
+            if (command === '/gm' || command === '/ckchat_system') {
+                const content = text.replace(/^\S+\s*/, '');
+                if (content) {
+                    window.CKChat.receive({
+                        type: 'ck_chat:message',
+                        message: sampleSystem('GM公告', content, 'gm')
+                    });
+                }
+                return true;
+            }
+            return true;
+        }
+
+        function channelFromPayload(item) {
+            if (item.channel === 'private') return { id: 'private', label: '私聊' };
+            if (item.channel === 'custom') return { id: `custom:${item.customChannel || '自定义'}`, label: item.customChannel || '自定义' };
+            return { id: 'global', label: '全服' };
+        }
+
+        function buildBody(item) {
+            if (item.mode === 'link') {
+                return {
+                    type: 'link',
+                    text: item.text || '',
+                    link: {
+                        linkType: item.linkType || 'custom',
+                        title: item.title || '自定义内容',
+                        subtitle: item.subtitle || '',
+                        payload: item.payload || {},
+                        details: item.details || [],
+                        meta: item.meta || {}
+                    }
+                };
+            }
+            if (item.mode === 'redpacket') {
+                return {
+                    type: 'redpacket',
+                    text: item.text || '恭喜发财',
+                    redPacket: {
+                        id: `hb:${Date.now()}`,
+                        amount: Number(item.amount || 1000),
+                        count: Number(item.count || 5),
+                        remainCount: Number(item.count || 5)
+                    }
+                };
+            }
+            if (item.mode === 'image') {
+                return {
+                    type: 'image',
+                    text: item.text || '',
+                    image: {
+                        name: item.imageName || '收藏图片',
+                        url: item.imageUrl || ''
+                    }
+                };
+            }
+            return {
+                type: 'text',
+                text: item.text || ''
+            };
+        }
+
+        function joinChannel(item) {
+            const preset = presetChannels.find((channel) => channel.id === item.customChannelId);
+            if (item.customChannelId && !preset) {
+                window.CKChat.receive({ type: 'ck_chat:channelJoinResult', data: { ok: false, message: '频道配置不存在' } });
+                return;
+            }
+            if (preset && !preset.jobs.includes(me.job)) {
+                window.CKChat.receive({ type: 'ck_chat:channelJoinResult', data: { ok: false, message: '当前职业不能加入该频道' } });
+                return;
+            }
+            window.CKChat.receive({
+                type: 'ck_chat:channelJoinResult',
+                data: {
+                    ok: true,
+                    id: preset ? preset.id : '',
+                    label: preset ? preset.label : item.customChannel,
+                    preset: Boolean(preset)
+                }
+            });
+        }
+
+        function sampleSystem(title, text, level) {
+            return {
+                id: `system:${Date.now()}`,
+                ts: now(),
+                channel: { id: 'system', label: '系统', system: true },
+                sender: { id: 0, name: '系统', system: true },
+                body: { type: 'system', title, text, level }
+            };
+        }
+
+        function samplePosition() {
+            return {
+                id: `posmsg:${Date.now()}`,
+                ts: now() - 35,
+                channel: { id: 'global', label: '全服' },
+                sender: {
+                    id: 7,
+                    name: 'Jack',
+                    avatar: 'https://q1.qlogo.cn/g?b=qq&nk=2518926462&s=100',
+                    chatFrameId: 'shuimo_01',
+                    level: 120,
+                    gang: 'Unite'
+                },
+                body: {
+                    type: 'position',
+                    text: '终点集合',
+                    position: { id: `pos:${Date.now()}`, x: -1034.22, y: -2733.89, z: 20.16, h: 151.2, label: '终点集合' }
+                }
+            };
+        }
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>
