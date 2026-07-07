@@ -1,7 +1,7 @@
 {
   "name": "ck_chat",
   "version": "1.0.0",
-  "description": "ESX/QBCore/OX compatible rich NUI chat for FiveM.",
+  "description": "FiveM rich NUI chat for ESX/QBCore with ox_inventory metadata, ck_realplate, dynamic frames, red packets and channels.",
   "author": "JACK <QQ 2518926462>",
   "license": "UNLICENSED",
   "private": true,

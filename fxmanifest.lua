@@ -5,7 +5,7 @@ game 'gta5'
 lua54 'yes'
 
 author 'JACK'
-description 'ESX/QBCore/OX compatible rich NUI chat for FiveM. QQ: 2518926462'
+description 'FiveM rich NUI chat for ESX/QBCore with ox_inventory metadata, ck_realplate, dynamic frames, red packets and channels. QQ: 2518926462'
 version '1.0.0'
 
 ui_page 'html/index.html'

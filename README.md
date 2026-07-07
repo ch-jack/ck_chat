@@ -2,46 +2,47 @@
 
 [![Build ck_chat](https://github.com/ch-jack/ck_chat/actions/workflows/build.yml/badge.svg)](https://github.com/ch-jack/ck_chat/actions/workflows/build.yml)
 
-FiveM 富文本 NUI 聊天资源，支持 ESX / QBCore / ox_inventory / ck_realplate。
+FiveM 富文本 NUI 聊天系统，支持 ESX / QBCore、ox_inventory metadata、ck_realplate 真实车牌、动态头像框/聊天框、红包、位置、私聊和自定义频道。
 
 作者: JACK  
 联系方式: QQ 2518926462
 
 ![全服聊天](docs/images/feature-global-chat.png)
 
-## 特性
+## 功能
 
-- ESX / QBCore 自动识别，也可以在配置里强制指定。
-- ox_inventory 背包兼容，支持显示物品 metadata。
-- 车库车辆信息展示，支持 ESX `owned_vehicles` 和 QB `player_vehicles`。
-- 支持 ck_realplate 的 `realplate / realplate2 / realplate3` 三个真实车牌槽位；有几个显示几个，没有真实车牌时只显示原车库车牌。
-- 支持全服、私聊、自定义频道、职业预设频道。
-- 支持文字、系统公告、GM 命令提示、道具链接、车辆链接、图片收藏、坐标分享、红包。
-- 支持动态头像框和聊天框展示，可通过管理命令或 ox_inventory 道具设置，并写入独立数据库表。
-- GitHub Actions 自动校验并打包 `ck_chat.zip`。
+- 框架兼容: 自动识别 ESX / QBCore，也可以在配置里强制指定。
+- 背包兼容: 支持 ox_inventory，物品链接会显示 metadata 详情。
+- 车库车辆: 支持 ESX `owned_vehicles` 和 QBCore `player_vehicles`。
+- 真实车牌: 支持 ck_realplate 的 `realplate`、`realplate2`、`realplate3` 三个槽位。
+- 聊天频道: 支持全服、私聊、自定义频道和职业预设频道。
+- 富文本消息: 支持物品链接、载具链接、收藏图片、红包、位置分享和系统公告。
+- 聊天外观: 支持动态头像框和动态聊天框，可通过 GM 命令或 ox_inventory 道具设置。
+- 持久化: 头像框和聊天框写入 `ck_chat_profiles` 数据库表。
+- 自动构建: GitHub Actions 自动检查并打包 `ck_chat.zip`。
 
 ## 依赖
 
 必需:
 
-- FiveM artifact 支持 `cerulean`
+- FiveM artifact，支持 `cerulean`
 - `oxmysql`
-- ESX 或 QBCore 至少一个
+- ESX 或 QBCore
 
 可选:
 
-- `ox_inventory`: 背包物品和 metadata 展示优先使用它
-- `ck_realplate`: 车辆链接显示真实车牌槽位
+- `ox_inventory`: 背包物品、metadata 和聊天外观道具
+- `ck_realplate`: 车辆链接显示真实车牌
 
 ## 安装
 
-1. 将资源目录放到服务器资源目录，例如:
+1. 放入服务器资源目录:
 
 ```text
 resources/[local]/ck_chat
 ```
 
-2. 在 `server.cfg` 中保证依赖先启动:
+2. 在 `server.cfg` 中按顺序启动:
 
 ```cfg
 ensure oxmysql
@@ -55,7 +56,7 @@ ensure ck_realplate
 ensure ck_chat
 ```
 
-3. 按你的服务器环境修改 `config.lua`。
+3. 修改 `config.lua`。
 
 4. 重启资源:
 
@@ -63,11 +64,11 @@ ensure ck_chat
 restart ck_chat
 ```
 
-5. 首次启动会自动创建 `ck_chat_profiles` 表；也可以手动导入 [sql/ck_chat.sql](sql/ck_chat.sql)。
+首次启动会自动创建 `ck_chat_profiles` 表；也可以手动导入 [sql/ck_chat.sql](sql/ck_chat.sql)。
 
 ## 配置
 
-配置文件: `config.lua`
+配置文件: [config.lua](config.lua)
 
 ```lua
 CKChatConfig.Framework = 'auto' -- auto / esx / qb
@@ -89,31 +90,29 @@ CKChatConfig.Garage = {
 }
 ```
 
-说明:
+配置说明:
 
-- `Framework = 'auto'`: 自动优先识别 QBCore，其次 ESX。
-- `Inventory = 'auto'`: `ox_inventory` 已启动时优先使用 OX，否则回退到框架背包。
-- `MoneyAccount`: 红包、自定义频道扣钱/加钱账户。ESX 的 `cash` 会映射到 `money`。
-- `CustomChannelJoinCost`: 加入手动自定义频道费用，填 `0` 表示免费；预设职业频道不扣费。
-- `FrameItems.AvatarItem`: ox_inventory 头像框道具名称。
-- `FrameItems.ChatBoxItem`: ox_inventory 聊天框道具名称。
+- `Framework`: `auto` 自动优先识别 QBCore，其次 ESX。
+- `Inventory`: `auto` 会优先使用 ox_inventory，否则回退框架背包。
+- `MoneyAccount`: 红包和自定义频道扣款账户。ESX 的 `cash` 会映射到 `money`。
+- `CustomChannelJoinCost`: 手动加入自定义频道的费用，填 `0` 表示免费。
+- `FrameItems.AvatarItem`: ox_inventory 头像框道具名。
+- `FrameItems.ChatBoxItem`: ox_inventory 聊天框道具名。
 - `FrameItems.RemoveOnUse`: 使用成功后是否扣除 1 个道具。
-- `OnlyStored = true`: 只展示入库车辆。ESX 读取 `stored`，QB 读取 `state`。
-- ck_realplate 真实车牌无需配置开关，始终读取 `realplate`、`realplate2`、`realplate3` 三个槽位。
+- `Garage.OnlyStored`: 只显示入库车辆。ESX 读取 `stored`，QB 读取 `state`。
+- ck_realplate 无需额外开关，固定读取 `realplate`、`realplate2`、`realplate3`。
 
 ## 功能用法
 
-### 1. 全服聊天
+### 全服聊天
 
-默认按键: `T`
-
-也可以执行客户端命令:
+默认按 `T` 打开聊天，也可以执行:
 
 ```text
 openNewChat
 ```
 
-全服频道是默认频道，所有在线玩家都能看到消息；支持普通文本、系统公告、GM 提示和 FiveM 颜色码。
+全服频道默认所有在线玩家可见，支持普通文本、系统公告、GM 提示和 FiveM 颜色码。
 
 ```text
 ^3黄色文字 ^7恢复默认
@@ -121,130 +120,51 @@ openNewChat
 
 ![全服聊天](docs/images/feature-global-chat.png)
 
-### 2. 动态头像框和聊天框
-
-管理员可以给玩家设置头像框和聊天框效果，聊天消息会展示玩家头像、等级、职业、频道和动态框样式。
-
-图片路径:
-
-```text
-html/txk/<头像框ID>.png
-html/txk/<头像框ID>.webp
-html/ltk/<聊天框ID>.png
-html/ltk/<聊天框ID>.webp
-```
-
-支持后缀: `webp / png / gif / jpg / jpeg`
-
-命令:
-
-```text
-/ckchat_frame <玩家ID> <头像框ID>
-/ckchat_boxframe <玩家ID> <聊天框ID>
-```
-
-`0` 表示取消当前头像框或聊天框。命令设置和背包道具使用都会写入 `ck_chat_profiles` 数据库表。
-
-ox_inventory 物品:
-
-1. 将 [docs/ox_inventory_items.lua](docs/ox_inventory_items.lua) 里的内容复制到 `ox_inventory/data/items.lua`。
-2. 保持 `consume = 0`，ck_chat 服务端会校验道具槽位、写入数据库后再扣除道具。
-3. 给玩家发带 metadata 的物品。
-
-示例:
-
-```text
-/giveitem 1 ck_chat_avatar_frame 1 {"frameId":"dynamic_avatar_01","label":"动态头像框 01"}
-/giveitem 1 ck_chat_box_frame 1 {"frameId":"dynamic_chatbox_01","label":"动态聊天框 01"}
-```
-
-metadata 可用字段:
-
-- 头像框: `frameId` / `chatFrameId` / `avatarFrameId`
-- 聊天框: `frameId` / `chatBoxFrameId` / `boxFrameId`
-
-![动态头像框和聊天框](docs/images/feature-dynamic-frames.png)
-
-### 3. 私聊
-
-使用方法:
+### 私聊
 
 1. 点击顶部 `私聊`。
-2. 在下拉框选择在线玩家。
+2. 选择在线玩家。
 3. 输入消息并发送。
-
-私聊只发送给指定玩家，右上角会显示当前私聊选择状态。
 
 ![私聊](docs/images/feature-private-chat.png)
 
-### 4. 自定义频道
-
-支持:
-
-- 手动输入自定义频道名。
-- 选择 `config.lua` 里的预设职业频道，例如警察、医护。
-
-使用方法:
+### 自定义频道
 
 1. 点击顶部 `自定义`。
-2. 选择预设频道或输入自定义频道名。
+2. 选择预设频道，或输入频道名。
 3. 点击 `加入频道`。
 4. 发送消息。
 
-费用:
+费用规则:
 
-- 手动输入的自定义频道按 `CKChatConfig.CustomChannelJoinCost` 扣费。
+- 手动自定义频道按 `CKChatConfig.CustomChannelJoinCost` 扣费。
 - 预设职业频道不扣费。
-- `CKChatConfig.CustomChannelJoinCost = 0` 时自定义频道免费。
+- `CKChatConfig.CustomChannelJoinCost = 0` 表示免费。
 
 ![自定义频道](docs/images/feature-custom-channel.png)
 
-### 5. 收藏发送图片
-
-使用方法:
+### 收藏发送图片
 
 1. 点击 `收藏`。
-2. 输入图片 URL 并收藏。
-3. 点击收藏图发送图片。
+2. 输入 `http://` 或 `https://` 图片地址并收藏。
+3. 点击收藏图片发送。
 
-说明:
-
-- 图片 URL 必须是 `http://` 或 `https://`。
-- 收藏数据保存在玩家本地 NUI `localStorage`。
+收藏数据保存在玩家本地 NUI `localStorage`。
 
 ![收藏发送图片](docs/images/feature-favorite-image.png)
 
-### 6. 发送物品链接和 OX metadata
-
-使用方法:
+### 发送物品链接
 
 1. 点击 `链接`。
 2. 选择 `背包`。
 3. 选择分类和物品。
 4. 发送消息。
 
-当 `ox_inventory` 启动时，物品会读取:
-
-- `name`
-- `label`
-- `count`
-- `slot`
-- `weight`
-- `metadata`
-
-metadata 会显示为详情字段，例如:
-
-```text
-元数据:plate
-元数据:description
-元数据:durability
-```
+启用 ox_inventory 时会读取 `name`、`label`、`count`、`slot`、`weight` 和 `metadata`，metadata 会在详情里逐项显示。
 
 ![发送物品链接](docs/images/feature-item-link.png)
 
-### 7. 发送载具链接和 ck_realplate 真实车牌
-
-使用方法:
+### 发送载具链接
 
 1. 点击 `链接`。
 2. 选择 `载具`。
@@ -256,55 +176,82 @@ metadata 会显示为详情字段，例如:
 - ESX: `owned_vehicles`
 - QBCore: `player_vehicles`
 
-ck_realplate 支持:
+ck_realplate 显示规则:
 
-- `realplate`
-- `realplate2`
-- `realplate3`
-
-显示规则:
-
-- 数据库里有几个真实车牌槽位，就在车辆列表中显示几条。
-- 如果三个真实车牌字段都没有值，只显示一条原车库车牌。
-- 详情中保留 `原车库车牌`，方便排查。
+- 有几个真实车牌槽位，就显示几条车辆记录。
+- 三个真实车牌字段都为空时，只显示原车库车牌。
+- 详情保留原车库车牌，方便排查。
 
 ![发送载具链接](docs/images/feature-vehicle-link.png)
 
-### 8. 发红包
-
-使用方法:
+### 发红包
 
 1. 点击 `红包`。
 2. 输入金额和份数。
-3. 发送。
+3. 发送红包。
 4. 其他玩家点击红包卡片领取。
 
 限制:
 
 - 私聊频道不能发红包。
-- 最大金额由 `server.lua` 内 `MAX_REDPACKET_AMOUNT` 控制，默认 `50000`。
+- 最大金额默认 `50000`，在 `server.lua` 的 `MAX_REDPACKET_AMOUNT` 中调整。
 - 扣款和加款账户由 `CKChatConfig.MoneyAccount` 控制。
 
 ![发红包](docs/images/feature-redpacket.png)
 
-### 9. 发位置
-
-使用方法:
+### 发位置
 
 1. 点击 `位置`。
 2. 当前输入框内容会作为位置标题。
 3. 发送后其他玩家点击 `地图打标`。
 
-说明:
-
-- 服务端保存坐标 30 分钟。
-- 客户端会调用 `SetNewWaypoint` 并创建路线 blip。
+服务端保存坐标 30 分钟，客户端会调用 `SetNewWaypoint` 并创建路线 blip。
 
 ![发位置](docs/images/feature-position.png)
 
-### 10. 管理命令
+## 动态头像框和聊天框
 
-命令:
+图片资源路径:
+
+```text
+html/txk/<头像框ID>.png
+html/txk/<头像框ID>.webp
+html/ltk/<聊天框ID>.png
+html/ltk/<聊天框ID>.webp
+```
+
+支持后缀: `webp / png / gif / jpg / jpeg`
+
+GM 命令:
+
+```text
+/ckchat_frame <玩家ID> <头像框ID>
+/ckchat_boxframe <玩家ID> <聊天框ID>
+```
+
+`0` 表示取消当前头像框或聊天框。命令和 ox_inventory 道具都会写入 `ck_chat_profiles`。
+
+ox_inventory 物品:
+
+1. 将 [docs/ox_inventory_items.lua](docs/ox_inventory_items.lua) 复制到 `ox_inventory/data/items.lua`。
+2. 保持 `consume = 0`，ck_chat 会在服务端校验槽位、写入数据库后再扣除道具。
+3. 发放带 metadata 的物品。
+
+示例:
+
+```text
+/giveitem 1 ck_chat_avatar_frame 1 {"frameId":"dynamic_avatar_01","label":"动态头像框 01"}
+/giveitem 1 ck_chat_box_frame 1 {"frameId":"dynamic_chatbox_01","label":"动态聊天框 01"}
+```
+
+metadata 字段:
+
+- 头像框: `frameId` / `chatFrameId` / `avatarFrameId`
+- 聊天框: `frameId` / `chatBoxFrameId` / `boxFrameId`
+
+![动态头像框和聊天框](docs/images/feature-dynamic-frames.png)
+
+## 管理命令
 
 ```text
 /gm <内容>
@@ -318,10 +265,8 @@ ck_realplate 支持:
 
 权限:
 
-- 框架 group 在 `CKChatConfig.AdminGroups` 中配置。
-- 同时支持 ACE `group.<name>` 和 `command.ckchat_admin`。
-
-![系统公告](docs/images/feature-global-chat.png)
+- 支持 `CKChatConfig.AdminGroups` 中的框架 group。
+- 支持 ACE `group.<name>` 和 `command.ckchat_admin`。
 
 ## 导出
 
@@ -346,7 +291,7 @@ exports['ck_chat']:SendCustomLink(source, {
 })
 ```
 
-## 自动化构建
+## 构建
 
 本地打包:
 
@@ -360,18 +305,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1
 dist/ck_chat.zip
 ```
 
-GitHub Actions:
+GitHub Actions 会执行:
 
-- 检查 `html/app.js`
-- 使用 `luac5.4 -p` 检查 Lua 语法
-- 执行 `scripts/build.ps1`
-- 上传 `ck_chat.zip` 构建产物
+- `node --check html/app.js`
+- `luac5.4 -p` Lua 语法检查
+- `scripts/build.ps1`
+- 上传 `ck_chat.zip`
 
-说明:
-
-- 构建时会复制资源文件、配置、JS、文档和图片。
-
-## 目录结构
+## 目录
 
 ```text
 ck_chat/
@@ -380,12 +321,10 @@ ck_chat/
   config.lua
   fxmanifest.lua
   framework/
-    client.lua
-    server.lua
   html/
-    index.html
-    index.css
     app.js
+    index.css
+    index.html
     test.html
     txk/
     ltk/
@@ -399,7 +338,7 @@ ck_chat/
   .github/workflows/build.yml
 ```
 
-## 开发预览
+## 预览
 
 本地预览测试页:
 
