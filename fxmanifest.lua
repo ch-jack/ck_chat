@@ -15,6 +15,8 @@ files {
     'html/test.html',
     'html/index.css',
     'html/app.js',
+    'html/txk/*',
+    'html/ltk/*',
 }
 
 shared_script 'config.lua'

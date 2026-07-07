@@ -24,6 +24,36 @@ end
 
 local JOIN_CHANNEL_COST = configuredCost(Config.CustomChannelJoinCost, 10000)
 
+local PROFILE_CREATE_SQL = [[
+CREATE TABLE IF NOT EXISTS `ck_chat_profiles` (
+  `identifier` varchar(80) NOT NULL,
+  `chat_frame_id` varchar(100) NOT NULL DEFAULT '',
+  `chat_box_frame_id` varchar(100) NOT NULL DEFAULT '',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`identifier`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+]]
+
+local PROFILE_SELECT_SQL = [[
+SELECT `chat_frame_id`, `chat_box_frame_id`
+FROM `ck_chat_profiles`
+WHERE `identifier` = ?
+LIMIT 1
+]]
+
+local PROFILE_UPSERT_SQL = [[
+INSERT INTO `ck_chat_profiles` (`identifier`, `chat_frame_id`, `chat_box_frame_id`)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE
+  `chat_frame_id` = VALUES(`chat_frame_id`),
+  `chat_box_frame_id` = VALUES(`chat_box_frame_id`)
+]]
+
+local FRAME_EXTENSIONS = { 'webp', 'png', 'gif', 'jpg', 'jpeg' }
+local profileDbReady = false
+local chatProfileCache = {}
+local frameAssetCache = {}
+
 local messageSeq = 0
 local positionSeq = 0
 local redPacketSeq = 0
@@ -36,6 +66,230 @@ local globalMuted = false
 local badWords = { '日', '操', '妈', '逼', '狗', '草', '滚', '垃圾', '脑残' }
 
 local PresetChannels = Config.PresetChannels or {}
+
+local function trimValue(value, maxLength)
+    value = tostring(value or ''):gsub('^%s+', ''):gsub('%s+$', '')
+    if maxLength and #value > maxLength then
+        return value:sub(1, maxLength)
+    end
+    return value
+end
+
+local function mysqlQuery(query, params)
+    if not MySQL or not MySQL.query then
+        return {}, false
+    end
+
+    if MySQL.query.await then
+        local ok, result = pcall(function()
+            return MySQL.query.await(query, params or {})
+        end)
+        if ok then
+            return result or {}, true
+        end
+        print(('[ck_chat] MySQL query failed: %s'):format(result))
+        return {}, false
+    end
+
+    local p = promise.new()
+    MySQL.query(query, params or {}, function(result)
+        p:resolve(result or {})
+    end)
+    return Citizen.Await(p), true
+end
+
+local function ensureProfileDatabase()
+    if profileDbReady then
+        return true
+    end
+
+    local _, ok = mysqlQuery(PROFILE_CREATE_SQL, {})
+    profileDbReady = ok == true
+    return profileDbReady
+end
+
+local function profileIdentifier(player)
+    local identifier = trimValue(Framework.getIdentifier(player), 80)
+    if identifier == '' then
+        identifier = tostring(Framework.getSource(player))
+    end
+    return identifier
+end
+
+local function normaliseFrameId(value)
+    local id = trimValue(value, 100)
+    if id == '' or id == '0' then
+        return ''
+    end
+
+    local lower = id:lower()
+    for _, ext in ipairs(FRAME_EXTENSIONS) do
+        local suffix = '.' .. ext
+        if lower:sub(-#suffix) == suffix then
+            id = id:sub(1, #id - #suffix)
+            break
+        end
+    end
+
+    if id:find('/', 1, true) or id:find('\\', 1, true) or id:find('..', 1, true) then
+        return ''
+    end
+
+    return id
+end
+
+local function frameFolder(field)
+    if field == 'chatBoxFrameId' or field == 'chatbox' then
+        return 'ltk'
+    end
+    return 'txk'
+end
+
+local function frameAssetExists(field, frameId)
+    frameId = normaliseFrameId(frameId)
+    if frameId == '' then
+        return true
+    end
+
+    local folder = frameFolder(field)
+    local cacheKey = folder .. ':' .. frameId
+    if frameAssetCache[cacheKey] ~= nil then
+        return frameAssetCache[cacheKey]
+    end
+
+    for _, ext in ipairs(FRAME_EXTENSIONS) do
+        local path = ('html/%s/%s.%s'):format(folder, frameId, ext)
+        if LoadResourceFile(GetCurrentResourceName(), path) ~= nil then
+            frameAssetCache[cacheKey] = true
+            return true
+        end
+    end
+
+    frameAssetCache[cacheKey] = false
+    return false
+end
+
+local function loadChatProfile(player)
+    local identifier = profileIdentifier(player)
+    local cached = chatProfileCache[identifier]
+    if cached and cached.loaded then
+        return cached
+    end
+
+    local profile = cached or {
+        chatFrameId = '',
+        chatBoxFrameId = '',
+    }
+
+    if ensureProfileDatabase() then
+        local rows, ok = mysqlQuery(PROFILE_SELECT_SQL, { identifier })
+        local row = ok and rows and rows[1] or nil
+        if row then
+            profile.chatFrameId = normaliseFrameId(row.chat_frame_id)
+            profile.chatBoxFrameId = normaliseFrameId(row.chat_box_frame_id)
+        end
+    end
+
+    profile.loaded = profileDbReady
+    chatProfileCache[identifier] = profile
+    Framework.set(player, 'chatFrameId', profile.chatFrameId)
+    Framework.set(player, 'chatBoxFrameId', profile.chatBoxFrameId)
+
+    return profile
+end
+
+local function saveChatProfile(player, profile)
+    local identifier = profileIdentifier(player)
+    if identifier == '' or not ensureProfileDatabase() then
+        return false
+    end
+
+    local _, ok = mysqlQuery(PROFILE_UPSERT_SQL, {
+        identifier,
+        normaliseFrameId(profile.chatFrameId),
+        normaliseFrameId(profile.chatBoxFrameId),
+    })
+    return ok == true
+end
+
+local function setPlayerChatStyle(player, field, frameId)
+    frameId = normaliseFrameId(frameId)
+    if frameId ~= '' and not frameAssetExists(field, frameId) then
+        return false, ('找不到图片资源：html/%s/%s'):format(frameFolder(field), frameId)
+    end
+
+    local profile = loadChatProfile(player)
+    local previous = profile[field]
+    profile[field] = frameId
+
+    if not saveChatProfile(player, profile) then
+        profile[field] = previous
+        return false, '聊天外观数据库保存失败'
+    end
+
+    Framework.set(player, field, frameId)
+    return true
+end
+
+local function frameItemsConfig()
+    local config = Config.FrameItems or {}
+    return {
+        avatarItem = tostring(config.AvatarItem or 'ck_chat_avatar_frame'),
+        chatBoxItem = tostring(config.ChatBoxItem or 'ck_chat_box_frame'),
+        removeOnUse = config.RemoveOnUse ~= false,
+    }
+end
+
+local function frameFieldFromKind(kind)
+    kind = tostring(kind or ''):lower()
+    if kind == 'avatar' or kind == 'frame' or kind == 'chatframe' then
+        return 'chatFrameId'
+    end
+    if kind == 'chatbox' or kind == 'box' or kind == 'boxframe' then
+        return 'chatBoxFrameId'
+    end
+    return nil
+end
+
+local function frameIdFromMetadata(field, metadata)
+    metadata = type(metadata) == 'table' and metadata or {}
+
+    if field == 'chatBoxFrameId' then
+        return normaliseFrameId(metadata.chatBoxFrameId or metadata.boxFrameId or metadata.frameId or metadata.id)
+    end
+
+    return normaliseFrameId(metadata.chatFrameId or metadata.avatarFrameId or metadata.frameId or metadata.id)
+end
+
+local function getOxSlot(source, slot)
+    if GetResourceState('ox_inventory') ~= 'started' then
+        return nil
+    end
+
+    local ok, result = pcall(function()
+        return exports.ox_inventory:GetSlot(source, tonumber(slot))
+    end)
+
+    if ok then
+        return result
+    end
+
+    print(('[ck_chat] ox_inventory GetSlot failed: %s'):format(result))
+    return nil
+end
+
+local function removeOxFrameItem(source, slotData, slot)
+    local ok, result = pcall(function()
+        return exports.ox_inventory:RemoveItem(source, slotData.name, 1, slotData.metadata, tonumber(slot))
+    end)
+
+    return ok and result == true
+end
+
+CreateThread(function()
+    Wait(1000)
+    ensureProfileDatabase()
+end)
 
 local AllowedBridgeEvents = {
     ['ck_chat:sendMessage'] = true,
@@ -220,9 +474,10 @@ local function playerProfile(player, options)
         avatar = ('https://q1.qlogo.cn/g?b=qq&nk=%s&s=100'):format(qq)
     end
 
+    local chatProfile = loadChatProfile(player)
     local source = Framework.getSource(player)
-    local chatFrameId = tostring(Framework.get(player, 'chatFrameId', '') or '')
-    local chatBoxFrameId = tostring(Framework.get(player, 'chatBoxFrameId', '') or '')
+    local chatFrameId = tostring(chatProfile.chatFrameId or Framework.get(player, 'chatFrameId', '') or '')
+    local chatBoxFrameId = tostring(chatProfile.chatBoxFrameId or Framework.get(player, 'chatBoxFrameId', '') or '')
 
     local profile = {
         id = source,
@@ -923,6 +1178,60 @@ AddEventHandler('ck_chat:bridge', function(eventName, ...)
     ServerHandlers[eventName](player, ...)
 end)
 
+RegisterNetEvent('ck_chat:useFrameItem')
+AddEventHandler('ck_chat:useFrameItem', function(kind, slot)
+    local source = source
+    local player = Framework.getPlayerFromSource(source)
+    local field = frameFieldFromKind(kind)
+    if not player or not field then
+        return
+    end
+
+    local slotData = getOxSlot(source, slot)
+    if not slotData then
+        Framework.notify(player, '~r~找不到这个背包道具')
+        return
+    end
+
+    local itemConfig = frameItemsConfig()
+    local expectedItem = field == 'chatBoxFrameId' and itemConfig.chatBoxItem or itemConfig.avatarItem
+    if tostring(slotData.name or '') ~= expectedItem then
+        Framework.notify(player, '~r~这个道具不能用于聊天外观')
+        return
+    end
+
+    local frameId = frameIdFromMetadata(field, slotData.metadata)
+    if frameId == '' then
+        Framework.notify(player, '~r~道具缺少 frameId 元数据')
+        return
+    end
+
+    if not frameAssetExists(field, frameId) then
+        Framework.notify(player, ('~r~找不到图片资源：html/%s/%s'):format(frameFolder(field), frameId))
+        return
+    end
+
+    if not ensureProfileDatabase() then
+        Framework.notify(player, '~r~聊天外观数据库不可用')
+        return
+    end
+
+    if itemConfig.removeOnUse and not removeOxFrameItem(source, slotData, slot) then
+        Framework.notify(player, '~r~道具扣除失败')
+        return
+    end
+
+    local ok, reason = setPlayerChatStyle(player, field, frameId)
+    if not ok then
+        Framework.notify(player, '~r~' .. reason)
+        return
+    end
+
+    local label = field == 'chatBoxFrameId' and '聊天框' or '聊天头像框'
+    Framework.notify(player, ('~g~%s已切换：%s'):format(label, frameId))
+    Framework.log('chat', 'use_frame_item', player, false, label, frameId)
+end)
+
 -- GM: 全频道系统公告，NUI 会以独立样式展示，并且不受玩家当前频道筛选影响。
 RegisterCommand('ckchat_system', function(source, _, rawCommand)
     if source ~= 0 then
@@ -1001,15 +1310,15 @@ RegisterCommand('ckchat_frame', function(source, args)
     end
 
     local target = Framework.getPlayerFromSource(tonumber(args[1]))
-    local chatFrameId = tostring(args[2] or '')
-    if chatFrameId == '0' then
-        chatFrameId = ''
-    end
     if target then
-        Framework.set(target, 'chatFrameId', chatFrameId)
-        Framework.changed(target, 'chatFrameId')
+        local chatFrameId = normaliseFrameId(args[2])
+        local ok, reason = setPlayerChatStyle(target, 'chatFrameId', chatFrameId)
+        if not ok then
+            Framework.notify(admin or source, '~r~' .. reason)
+            return
+        end
         Framework.log('chat', 'gm_set_frame', admin or source, false, Framework.getSource(target), chatFrameId)
-        Framework.notify(target, ('~g~聊天头像框已切换：%s'):format(chatFrameId))
+        Framework.notify(target, ('~g~聊天头像框已切换：%s'):format(chatFrameId ~= '' and chatFrameId or '已取消'))
     end
 end, false)
 
@@ -1021,15 +1330,15 @@ RegisterCommand('ckchat_boxframe', function(source, args)
     end
 
     local target = Framework.getPlayerFromSource(tonumber(args[1]))
-    local chatBoxFrameId = tostring(args[2] or '')
-    if chatBoxFrameId == '0' then
-        chatBoxFrameId = ''
-    end
     if target then
-        Framework.set(target, 'chatBoxFrameId', chatBoxFrameId)
-        Framework.changed(target, 'chatBoxFrameId')
+        local chatBoxFrameId = normaliseFrameId(args[2])
+        local ok, reason = setPlayerChatStyle(target, 'chatBoxFrameId', chatBoxFrameId)
+        if not ok then
+            Framework.notify(admin or source, '~r~' .. reason)
+            return
+        end
         Framework.log('chat', 'gm_set_chat_box_frame', admin or source, false, Framework.getSource(target), chatBoxFrameId)
-        Framework.notify(target, ('~g~聊天框已切换：%s'):format(chatBoxFrameId))
+        Framework.notify(target, ('~g~聊天框已切换：%s'):format(chatBoxFrameId ~= '' and chatBoxFrameId or '已取消'))
     end
 end, false)
 

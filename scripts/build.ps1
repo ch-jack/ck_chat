@@ -22,6 +22,7 @@ $include = @(
     "server.lua",
     "framework",
     "html",
+    "sql",
     "docs",
     "README.md",
     "LICENSE"

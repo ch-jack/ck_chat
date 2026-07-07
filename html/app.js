@@ -8,7 +8,7 @@
     const MAX_MESSAGES = 120;
     const MAX_REDPACKET_AMOUNT = 50000;
     const AUTO_HIDE_MS = 7000;
-    const FRAME_IMAGE_ROOT = `nui://${RESOURCE}/html/images`;
+    const FRAME_IMAGE_ROOT = `nui://${RESOURCE}/html`;
     const FRAME_EXTENSIONS = ['webp', 'png', 'gif', 'jpg', 'jpeg'];
     const EMOJIS = ['😀', '😂', '😎', '😍', '😡', '😭', '👍', '👀', '🔥', '🎉', '🚗', '🏁', '💰', '📍', '⭐', '✅', '❌', '？', '！', 'OK'];
     const FAVORITE_IMAGES_KEY = 'ck_chat.favoriteImages';

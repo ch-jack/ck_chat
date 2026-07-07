@@ -36,6 +36,18 @@ CKChatConfig.MoneyAccount = CKChatConfig.MoneyAccount or 'cash'
 -- 加入手动自定义频道的费用。填 0 表示免费；预设职业频道不扣费。
 CKChatConfig.CustomChannelJoinCost = CKChatConfig.CustomChannelJoinCost or 10000
 
+-- ox_inventory 道具配置。道具 metadata 里写 frameId 或 chatFrameId/chatBoxFrameId。
+CKChatConfig.FrameItems = CKChatConfig.FrameItems or {
+    -- 使用后设置聊天头像框，对应图片目录 html/txk。
+    AvatarItem = 'ck_chat_avatar_frame',
+
+    -- 使用后设置聊天框，对应图片目录 html/ltk。
+    ChatBoxItem = 'ck_chat_box_frame',
+
+    -- true = 使用成功后扣除 1 个道具；false = 只切换不扣除。
+    RemoveOnUse = true,
+}
+
 -- 车库读取配置。
 CKChatConfig.Garage = CKChatConfig.Garage or {
     -- auto = 跟随 CKChatConfig.Framework；也可以强制 esx/qb

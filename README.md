@@ -17,7 +17,7 @@ FiveM 富文本 NUI 聊天资源，支持 ESX / QBCore / ox_inventory / ck_realp
 - 支持 ck_realplate 的 `realplate / realplate2 / realplate3` 三个真实车牌槽位；有几个显示几个，没有真实车牌时只显示原车库车牌。
 - 支持全服、私聊、自定义频道、职业预设频道。
 - 支持文字、系统公告、GM 命令提示、道具链接、车辆链接、图片收藏、坐标分享、红包。
-- 支持动态头像框和聊天框展示，可通过管理命令给玩家设置。
+- 支持动态头像框和聊天框展示，可通过管理命令或 ox_inventory 道具设置，并写入独立数据库表。
 - GitHub Actions 自动校验并打包 `ck_chat.zip`。
 
 ## 依赖
@@ -63,6 +63,8 @@ ensure ck_chat
 restart ck_chat
 ```
 
+5. 首次启动会自动创建 `ck_chat_profiles` 表；也可以手动导入 [sql/ck_chat.sql](sql/ck_chat.sql)。
+
 ## 配置
 
 配置文件: `config.lua`
@@ -72,6 +74,12 @@ CKChatConfig.Framework = 'auto' -- auto / esx / qb
 CKChatConfig.Inventory = 'auto' -- auto / ox / framework
 CKChatConfig.MoneyAccount = 'cash'
 CKChatConfig.CustomChannelJoinCost = 10000
+
+CKChatConfig.FrameItems = {
+    AvatarItem = 'ck_chat_avatar_frame',
+    ChatBoxItem = 'ck_chat_box_frame',
+    RemoveOnUse = true,
+}
 
 CKChatConfig.Garage = {
     Framework = 'auto',
@@ -87,6 +95,9 @@ CKChatConfig.Garage = {
 - `Inventory = 'auto'`: `ox_inventory` 已启动时优先使用 OX，否则回退到框架背包。
 - `MoneyAccount`: 红包、自定义频道扣钱/加钱账户。ESX 的 `cash` 会映射到 `money`。
 - `CustomChannelJoinCost`: 加入手动自定义频道费用，填 `0` 表示免费；预设职业频道不扣费。
+- `FrameItems.AvatarItem`: ox_inventory 头像框道具名称。
+- `FrameItems.ChatBoxItem`: ox_inventory 聊天框道具名称。
+- `FrameItems.RemoveOnUse`: 使用成功后是否扣除 1 个道具。
 - `OnlyStored = true`: 只展示入库车辆。ESX 读取 `stored`，QB 读取 `state`。
 - ck_realplate 真实车牌无需配置开关，始终读取 `realplate`、`realplate2`、`realplate3` 三个槽位。
 
@@ -114,12 +125,43 @@ openNewChat
 
 管理员可以给玩家设置头像框和聊天框效果，聊天消息会展示玩家头像、等级、职业、频道和动态框样式。
 
+图片路径:
+
+```text
+html/txk/<头像框ID>.png
+html/txk/<头像框ID>.webp
+html/ltk/<聊天框ID>.png
+html/ltk/<聊天框ID>.webp
+```
+
+支持后缀: `webp / png / gif / jpg / jpeg`
+
 命令:
 
 ```text
 /ckchat_frame <玩家ID> <头像框ID>
 /ckchat_boxframe <玩家ID> <聊天框ID>
 ```
+
+`0` 表示取消当前头像框或聊天框。命令设置和背包道具使用都会写入 `ck_chat_profiles` 数据库表。
+
+ox_inventory 物品:
+
+1. 将 [docs/ox_inventory_items.lua](docs/ox_inventory_items.lua) 里的内容复制到 `ox_inventory/data/items.lua`。
+2. 保持 `consume = 0`，ck_chat 服务端会校验道具槽位、写入数据库后再扣除道具。
+3. 给玩家发带 metadata 的物品。
+
+示例:
+
+```text
+/giveitem 1 ck_chat_avatar_frame 1 {"frameId":"dynamic_avatar_01","label":"动态头像框 01"}
+/giveitem 1 ck_chat_box_frame 1 {"frameId":"dynamic_chatbox_01","label":"动态聊天框 01"}
+```
+
+metadata 可用字段:
+
+- 头像框: `frameId` / `chatFrameId` / `avatarFrameId`
+- 聊天框: `frameId` / `chatBoxFrameId` / `boxFrameId`
 
 ![动态头像框和聊天框](docs/images/feature-dynamic-frames.png)
 
@@ -345,8 +387,13 @@ ck_chat/
     index.css
     app.js
     test.html
+    txk/
+    ltk/
   docs/
     images/
+    ox_inventory_items.lua
+  sql/
+    ck_chat.sql
   scripts/
     build.ps1
   .github/workflows/build.yml

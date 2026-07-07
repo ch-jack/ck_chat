@@ -50,6 +50,40 @@ local function systemLocal(title, text, level)
     })
 end
 
+local function oxInventoryStarted()
+    local state = GetResourceState('ox_inventory')
+    return state == 'started' or state == 'starting'
+end
+
+local function useFrameItem(kind, data, slot)
+    if not oxInventoryStarted() then
+        Framework.notify('~r~ox_inventory 未启动')
+        return
+    end
+
+    local useSlot = slot or (type(data) == 'table' and data.slot)
+    if not useSlot then
+        Framework.notify('~r~道具槽位无效')
+        return
+    end
+
+    exports.ox_inventory:useItem(data, function(used)
+        if not used then
+            return
+        end
+
+        TriggerServerEvent('ck_chat:useFrameItem', kind, useSlot)
+    end)
+end
+
+exports('useAvatarFrameItem', function(data, slot)
+    useFrameItem('avatar', data, slot)
+end)
+
+exports('useChatBoxFrameItem', function(data, slot)
+    useFrameItem('chatbox', data, slot)
+end)
+
 local function legacyMessage(author, color, text)
     if chatVisibilityToggle then
         return
