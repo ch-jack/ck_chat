@@ -1,3 +1,7 @@
+-- ck_chat client framework bridge
+-- 作者: JACK
+-- 联系方式: QQ 2518926462
+
 ChatClientFramework = ChatClientFramework or {}
 
 local Framework = ChatClientFramework

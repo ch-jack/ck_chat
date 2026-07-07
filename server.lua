@@ -1,3 +1,7 @@
+-- ck_chat server
+-- 作者: JACK
+-- 联系方式: QQ 2518926462
+
 math.randomseed(os.time())
 
 local Framework = ChatFramework

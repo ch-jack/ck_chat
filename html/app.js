@@ -1,3 +1,7 @@
+// ck_chat NUI
+// Author: JACK
+// QQ: 2518926462
+
 (function () {
     const TEST_MODE = Boolean(window.CK_CHAT_TEST);
     const RESOURCE = typeof GetParentResourceName === 'function' ? GetParentResourceName() : 'ck_chat';

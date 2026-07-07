@@ -1,3 +1,7 @@
+-- ck_chat client
+-- 作者: JACK
+-- 联系方式: QQ 2518926462
+
 local Framework = ChatClientFramework
 
 local chatInputActive = false

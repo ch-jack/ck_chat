@@ -4,6 +4,10 @@ game 'gta5'
 
 lua54 'yes'
 
+author 'JACK'
+description 'ESX/QBCore/OX compatible rich NUI chat for FiveM. QQ: 2518926462'
+version '1.0.0'
+
 ui_page 'html/index.html'
 
 files {

@@ -86,18 +86,45 @@
             items: [
                 {
                     model: 'gtr',
-                    label: 'Nissan GT-R R35',
+                    label: 'Nissan GT-R R35 槽1',
                     type: 'sports',
                     typeLabel: '跑车',
+                    plate: '京A12345',
+                    realPlate: '京A12345',
+                    sourcePlate: 'ABC123',
+                    realPlateSlot: 1,
                     brand: 'Nissan',
                     year: '2017',
                     details: [
                         { key: 'model', label: '模型', value: 'gtr' },
+                        { key: 'plate', label: '显示车牌槽1', value: '京A12345' },
+                        { key: 'realPlate', label: 'CK真实车牌', value: '京A12345' },
+                        { key: 'sourcePlate', label: '原车库车牌', value: 'ABC123' },
                         { key: 'brand', label: '品牌', value: 'Nissan' },
                         { key: 'year', label: '年份', value: '2017' },
                         { key: 'costs', label: '价格', value: '85000000' }
                     ],
-                    meta: { model: 'gtr', brand: 'Nissan', year: '2017', costs: 85000000 }
+                    meta: { model: 'gtr', plate: '京A12345', realPlate: '京A12345', sourcePlate: 'ABC123', realPlateSlot: 1, brand: 'Nissan', year: '2017', costs: 85000000 }
+                },
+                {
+                    model: 'gtr',
+                    label: 'Nissan GT-R R35 槽2',
+                    type: 'sports',
+                    typeLabel: '跑车',
+                    plate: '沪B67890',
+                    realPlate: '沪B67890',
+                    sourcePlate: 'ABC123',
+                    realPlateSlot: 2,
+                    brand: 'Nissan',
+                    year: '2017',
+                    details: [
+                        { key: 'model', label: '模型', value: 'gtr' },
+                        { key: 'plate', label: '显示车牌槽2', value: '沪B67890' },
+                        { key: 'realPlate', label: 'CK真实车牌', value: '沪B67890' },
+                        { key: 'sourcePlate', label: '原车库车牌', value: 'ABC123' },
+                        { key: 'brand', label: '品牌', value: 'Nissan' }
+                    ],
+                    meta: { model: 'gtr', plate: '沪B67890', realPlate: '沪B67890', sourcePlate: 'ABC123', realPlateSlot: 2, brand: 'Nissan', year: '2017' }
                 },
                 {
                     model: 'adder',

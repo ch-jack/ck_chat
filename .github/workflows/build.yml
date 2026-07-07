@@ -1,0 +1,40 @@
+name: Build ck_chat
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Validate and package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4 zip
+
+      - name: Check JavaScript
+        run: node --check html/app.js
+
+      - name: Check Lua syntax
+        run: |
+          luac5.4 -p config.lua client.lua server.lua framework/client.lua framework/server.lua fxmanifest.lua
+
+      - name: Build package
+        shell: pwsh
+        run: ./scripts/build.ps1
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ck_chat
+          path: dist/ck_chat.zip

@@ -1,0 +1,13 @@
+{
+  "name": "ck_chat",
+  "version": "1.0.0",
+  "description": "ESX/QBCore/OX compatible rich NUI chat for FiveM.",
+  "author": "JACK <QQ 2518926462>",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "check:js": "node --check html/app.js",
+    "build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1",
+    "build:pwsh": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1"
+  }
+}
