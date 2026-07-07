@@ -897,17 +897,6 @@ local function sqlTableName(value, fallback)
     return fallback
 end
 
-local function realPlateSlots()
-    local count = tonumber(garageConfig().RealPlateSlots) or 3
-    if count < 1 then
-        return 1
-    end
-    if count > 3 then
-        return 3
-    end
-    return math.floor(count)
-end
-
 local function realPlateColumn(slot)
     if slot == 1 then
         return 'realplate'
@@ -917,11 +906,8 @@ end
 
 local function collectRealPlates(row)
     local plates = {}
-    if garageConfig().UseCKRealPlate == false then
-        return plates
-    end
 
-    for slot = 1, realPlateSlots() do
+    for slot = 1, 3 do
         local column = realPlateColumn(slot)
         local value = trimText(row[column], 50)
         if value ~= '' then

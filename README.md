@@ -70,14 +70,13 @@ restart ck_chat
 CKChatConfig.Framework = 'auto' -- auto / esx / qb
 CKChatConfig.Inventory = 'auto' -- auto / ox / framework
 CKChatConfig.MoneyAccount = 'cash'
+CKChatConfig.CustomChannelJoinCost = 10000
 
 CKChatConfig.Garage = {
     Framework = 'auto',
     OnlyStored = true,
     ESXTable = 'owned_vehicles',
     QBTable = 'player_vehicles',
-    UseCKRealPlate = true,
-    RealPlateSlots = 3,
 }
 ```
 
@@ -86,9 +85,9 @@ CKChatConfig.Garage = {
 - `Framework = 'auto'`: 自动优先识别 QBCore，其次 ESX。
 - `Inventory = 'auto'`: `ox_inventory` 已启动时优先使用 OX，否则回退到框架背包。
 - `MoneyAccount`: 红包、自定义频道扣钱/加钱账户。ESX 的 `cash` 会映射到 `money`。
+- `CustomChannelJoinCost`: 加入手动自定义频道费用，填 `0` 表示免费；预设职业频道不扣费。
 - `OnlyStored = true`: 只展示入库车辆。ESX 读取 `stored`，QB 读取 `state`。
-- `UseCKRealPlate = true`: 读取车库表中的 ck_realplate 字段。
-- `RealPlateSlots = 3`: 读取 `realplate`、`realplate2`、`realplate3`。
+- ck_realplate 真实车牌无需配置开关，始终读取 `realplate`、`realplate2`、`realplate3` 三个槽位。
 
 ## 功能用法
 
@@ -125,6 +124,12 @@ openNewChat
 2. 选择预设频道或输入自定义频道名。
 3. 点击 `加入频道`。
 4. 发送消息。
+
+费用:
+
+- 手动输入的自定义频道按 `CKChatConfig.CustomChannelJoinCost` 扣费。
+- 预设职业频道不扣费。
+- `CKChatConfig.CustomChannelJoinCost = 0` 时自定义频道免费。
 
 ![频道](docs/images/custom-channel.png)
 

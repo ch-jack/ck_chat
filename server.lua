@@ -10,7 +10,19 @@ local Config = CKChatConfig or {}
 local MAX_HISTORY = 100
 local MAX_TEXT_LENGTH = 600
 local MAX_REDPACKET_AMOUNT = 50000
-local JOIN_CHANNEL_COST = 10000
+
+local function configuredCost(value, fallback)
+    local cost = tonumber(value)
+    if not cost then
+        return fallback
+    end
+    if cost < 0 then
+        return 0
+    end
+    return math.floor(cost)
+end
+
+local JOIN_CHANNEL_COST = configuredCost(Config.CustomChannelJoinCost, 10000)
 
 local messageSeq = 0
 local positionSeq = 0
@@ -429,11 +441,11 @@ local function joinChannel(player, data)
         return
     end
 
-    if not custom.preset then
+    if not custom.preset and JOIN_CHANNEL_COST > 0 then
         if not Framework.removeMoney(player, JOIN_CHANNEL_COST, 'ck_chat:join_channel') then
             Framework.sendClient(player, 'ck_chat:channelJoinResult', {
                 ok = false,
-                message = '金币不足，加入自定义频道需要10000金币',
+                message = ('金币不足，加入自定义频道需要%s金币'):format(JOIN_CHANNEL_COST),
             })
             return
         end
