@@ -893,6 +893,45 @@ local function sqlTableName(value, fallback)
     return fallback
 end
 
+local function realPlateSlots()
+    local count = tonumber(garageConfig().RealPlateSlots) or 3
+    if count < 1 then
+        return 1
+    end
+    if count > 3 then
+        return 3
+    end
+    return math.floor(count)
+end
+
+local function realPlateColumn(slot)
+    if slot == 1 then
+        return 'realplate'
+    end
+    return ('realplate%s'):format(slot)
+end
+
+local function collectRealPlates(row)
+    local plates = {}
+    if garageConfig().UseCKRealPlate == false then
+        return plates
+    end
+
+    for slot = 1, realPlateSlots() do
+        local column = realPlateColumn(slot)
+        local value = trimText(row[column], 50)
+        if value ~= '' then
+            plates[#plates + 1] = {
+                slot = slot,
+                column = column,
+                plate = value,
+            }
+        end
+    end
+
+    return plates
+end
+
 local function vehicleLabel(model, row)
     local qb = getQBCore()
     if qb and qb.Shared and qb.Shared.Vehicles then
@@ -918,10 +957,12 @@ local function vehicleEntry(row, garageType)
     elseif not model and type(row.vehicle) == 'string' then
         model = row.vehicle
     end
-    local plate = row.plate or props.plate or ''
+    local sourcePlate = row.plate or props.plate or ''
+    local realPlates = collectRealPlates(row)
+    local displayPlate = realPlates[1] and realPlates[1].plate or sourcePlate
     local garageName = row.garage or row.parking or row.garage_id or row.type or 'garage'
     local label, brand = vehicleLabel(model, row)
-    local id = trimText(row.id or row.citizenid and (row.citizenid .. ':' .. plate) or row.owner and (row.owner .. ':' .. plate) or plate or model, 120)
+    local id = trimText(row.id or row.citizenid and (row.citizenid .. ':' .. sourcePlate) or row.owner and (row.owner .. ':' .. sourcePlate) or sourcePlate or displayPlate or model, 120)
     local vehicleType = trimText(garageName, 60)
     if vehicleType == '' then
         vehicleType = 'garage'
@@ -932,7 +973,10 @@ local function vehicleEntry(row, garageType)
         id = id,
         model = tostring(model or ''),
         label = label,
-        plate = tostring(plate or ''),
+        plate = tostring(displayPlate or ''),
+        sourcePlate = tostring(sourcePlate or ''),
+        realPlate = tostring(realPlates[1] and realPlates[1].plate or ''),
+        realPlateSlot = realPlates[1] and realPlates[1].slot or nil,
         garage = tostring(garageName or ''),
         state = row.state,
         stored = row.stored,
@@ -945,7 +989,16 @@ local function vehicleEntry(row, garageType)
     local details = {}
     addDetail(details, 'model', '模型', meta.model)
     addDetail(details, 'label', '名称', meta.label)
-    addDetail(details, 'plate', '车牌', meta.plate)
+    addDetail(details, 'plate', '显示车牌', meta.plate)
+    if meta.realPlate ~= '' then
+        addDetail(details, 'realPlate', 'CK真实车牌', meta.realPlate)
+        addDetail(details, 'sourcePlate', '原车库车牌', meta.sourcePlate)
+        for _, item in ipairs(realPlates) do
+            addDetail(details, item.column, item.slot == 1 and '真实车牌槽1' or ('真实车牌槽' .. item.slot), item.plate)
+        end
+    else
+        addDetail(details, 'sourcePlate', '车库车牌', meta.sourcePlate)
+    end
     addDetail(details, 'garage', '车库', meta.garage)
     addDetail(details, 'state', '状态', meta.state ~= nil and meta.state or meta.stored)
     addDetail(details, 'hash', 'Hash', meta.hash)
@@ -961,6 +1014,8 @@ local function vehicleEntry(row, garageType)
         type = vehicleType,
         typeLabel = vehicleType,
         plate = meta.plate,
+        realPlate = meta.realPlate,
+        sourcePlate = meta.sourcePlate,
         text = meta.plate ~= '' and ('车牌 ' .. meta.plate) or '',
         details = details,
         meta = meta,
@@ -1040,6 +1095,8 @@ function Framework.getVehicleLinkPayload(player, model, payload)
                     id = item.id,
                     model = item.model,
                     plate = item.plate,
+                    realPlate = item.realPlate,
+                    sourcePlate = item.sourcePlate,
                     type = item.type,
                     meta = item.meta,
                 },

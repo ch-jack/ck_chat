@@ -15,6 +15,8 @@ CKChatConfig.Garage = CKChatConfig.Garage or {
     OnlyStored = true,
     ESXTable = 'owned_vehicles',
     QBTable = 'player_vehicles',
+    UseCKRealPlate = true,
+    RealPlateSlots = 3,
 }
 
 CKChatConfig.PresetChannels = CKChatConfig.PresetChannels or {

@@ -833,7 +833,7 @@
         if (items.length === 0) {
             refs.linkValue.appendChild(option('', '暂无内容'));
         } else {
-            items.forEach((item) => refs.linkValue.appendChild(option(getLinkItemId(item), item.label || item.name || item.model)));
+            items.forEach((item) => refs.linkValue.appendChild(option(getLinkItemId(item), linkOptionLabel(item))));
         }
         refs.linkValue.value = state.linkValue;
         renderLinkPreview();
@@ -872,6 +872,14 @@
 
     function getSelectedLinkItem() {
         return filteredLinkItems().find((item) => getLinkItemId(item) === String(state.linkValue || '')) || null;
+    }
+
+    function linkOptionLabel(item) {
+        if (state.linkSource === 'vehicle') {
+            const label = item.label || item.name || item.model || '车辆';
+            return item.plate ? `${label} [${item.plate}]` : label;
+        }
+        return item.label || item.name || item.model || '';
     }
 
     function linkImageFromItem(item) {
