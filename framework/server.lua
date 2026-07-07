@@ -944,9 +944,9 @@ local function vehicleLabel(model, row)
     return trimText(row and (row.vehicle_name or row.name or row.label) or model, 80), nil
 end
 
-local function vehicleEntry(row, garageType)
+local function vehicleEntries(row, garageType)
     if not rowIsStored(row) then
-        return nil
+        return {}
     end
 
     local vehicleJson = type(row.vehicle) == 'string' and row.vehicle:match('^%s*{') and row.vehicle or nil
@@ -959,67 +959,91 @@ local function vehicleEntry(row, garageType)
     end
     local sourcePlate = row.plate or props.plate or ''
     local realPlates = collectRealPlates(row)
-    local displayPlate = realPlates[1] and realPlates[1].plate or sourcePlate
+    local displayPlates = #realPlates > 0 and realPlates or {
+        {
+            slot = 1,
+            column = 'plate',
+            plate = sourcePlate,
+            fallback = true,
+        }
+    }
     local garageName = row.garage or row.parking or row.garage_id or row.type or 'garage'
     local label, brand = vehicleLabel(model, row)
-    local id = trimText(row.id or row.citizenid and (row.citizenid .. ':' .. sourcePlate) or row.owner and (row.owner .. ':' .. sourcePlate) or sourcePlate or displayPlate or model, 120)
+    local baseId = trimText(row.id or row.citizenid and (row.citizenid .. ':' .. sourcePlate) or row.owner and (row.owner .. ':' .. sourcePlate) or sourcePlate or model, 100)
     local vehicleType = trimText(garageName, 60)
     if vehicleType == '' then
         vehicleType = 'garage'
     end
 
-    local meta = {
-        framework = garageType,
-        id = id,
-        model = tostring(model or ''),
-        label = label,
-        plate = tostring(displayPlate or ''),
-        sourcePlate = tostring(sourcePlate or ''),
-        realPlate = tostring(realPlates[1] and realPlates[1].plate or ''),
-        realPlateSlot = realPlates[1] and realPlates[1].slot or nil,
-        garage = tostring(garageName or ''),
-        state = row.state,
-        stored = row.stored,
-        hash = row.hash or props.hash,
-        fuel = row.fuel or props.fuelLevel,
-        engine = row.engine or props.engineHealth,
-        body = row.body or props.bodyHealth,
-        brand = brand,
-    }
-    local details = {}
-    addDetail(details, 'model', '模型', meta.model)
-    addDetail(details, 'label', '名称', meta.label)
-    addDetail(details, 'plate', '显示车牌', meta.plate)
-    if meta.realPlate ~= '' then
-        addDetail(details, 'realPlate', 'CK真实车牌', meta.realPlate)
-        addDetail(details, 'sourcePlate', '原车库车牌', meta.sourcePlate)
-        for _, item in ipairs(realPlates) do
-            addDetail(details, item.column, item.slot == 1 and '真实车牌槽1' or ('真实车牌槽' .. item.slot), item.plate)
+    local entries = {}
+    for _, plateInfo in ipairs(displayPlates) do
+        local displayPlate = tostring(plateInfo.plate or '')
+        local slot = tonumber(plateInfo.slot) or 1
+        local hasRealPlate = plateInfo.fallback ~= true
+        local slotText = hasRealPlate and ('槽' .. slot) or ''
+        local itemLabel = trimText(label ~= '' and label or model, 80)
+        if slotText ~= '' then
+            itemLabel = trimText(('%s %s'):format(itemLabel, slotText), 80)
         end
-    else
-        addDetail(details, 'sourcePlate', '车库车牌', meta.sourcePlate)
-    end
-    addDetail(details, 'garage', '车库', meta.garage)
-    addDetail(details, 'state', '状态', meta.state ~= nil and meta.state or meta.stored)
-    addDetail(details, 'hash', 'Hash', meta.hash)
-    addDetail(details, 'fuel', '油量', meta.fuel)
-    addDetail(details, 'engine', '引擎', meta.engine)
-    addDetail(details, 'body', '车身', meta.body)
-    addDetail(details, 'brand', '品牌', meta.brand)
 
-    return {
-        id = id,
-        model = meta.model,
-        label = trimText(label ~= '' and label or meta.model, 80),
-        type = vehicleType,
-        typeLabel = vehicleType,
-        plate = meta.plate,
-        realPlate = meta.realPlate,
-        sourcePlate = meta.sourcePlate,
-        text = meta.plate ~= '' and ('车牌 ' .. meta.plate) or '',
-        details = details,
-        meta = meta,
-    }
+        local id = hasRealPlate and ('%s:%s'):format(baseId, plateInfo.column) or baseId
+        local meta = {
+            framework = garageType,
+            id = id,
+            model = tostring(model or ''),
+            label = itemLabel,
+            plate = displayPlate,
+            sourcePlate = tostring(sourcePlate or ''),
+            realPlate = hasRealPlate and displayPlate or '',
+            realPlateSlot = hasRealPlate and slot or nil,
+            garage = tostring(garageName or ''),
+            state = row.state,
+            stored = row.stored,
+            hash = row.hash or props.hash,
+            fuel = row.fuel or props.fuelLevel,
+            engine = row.engine or props.engineHealth,
+            body = row.body or props.bodyHealth,
+            brand = brand,
+        }
+        local details = {}
+        addDetail(details, 'model', '模型', meta.model)
+        addDetail(details, 'label', '名称', meta.label)
+        addDetail(details, 'plate', hasRealPlate and ('显示车牌槽' .. slot) or '显示车牌', meta.plate)
+        if hasRealPlate then
+            addDetail(details, 'realPlate', 'CK真实车牌', meta.realPlate)
+            addDetail(details, 'realPlateSlot', '真实车牌槽位', slot)
+            addDetail(details, 'sourcePlate', '原车库车牌', meta.sourcePlate)
+            for _, item in ipairs(realPlates) do
+                addDetail(details, item.column, item.slot == 1 and '真实车牌槽1' or ('真实车牌槽' .. item.slot), item.plate)
+            end
+        else
+            addDetail(details, 'sourcePlate', '车库车牌', meta.sourcePlate)
+        end
+        addDetail(details, 'garage', '车库', meta.garage)
+        addDetail(details, 'state', '状态', meta.state ~= nil and meta.state or meta.stored)
+        addDetail(details, 'hash', 'Hash', meta.hash)
+        addDetail(details, 'fuel', '油量', meta.fuel)
+        addDetail(details, 'engine', '引擎', meta.engine)
+        addDetail(details, 'body', '车身', meta.body)
+        addDetail(details, 'brand', '品牌', meta.brand)
+
+        entries[#entries + 1] = {
+            id = id,
+            model = meta.model,
+            label = itemLabel,
+            type = vehicleType,
+            typeLabel = vehicleType,
+            plate = meta.plate,
+            realPlate = meta.realPlate,
+            sourcePlate = meta.sourcePlate,
+            realPlateSlot = meta.realPlateSlot,
+            text = meta.plate ~= '' and ('车牌 ' .. meta.plate) or '',
+            details = details,
+            meta = meta,
+        }
+    end
+
+    return entries
 end
 
 local function qbVehicleCatalog(player)
@@ -1031,8 +1055,7 @@ local function qbVehicleCatalog(player)
     local categoryMap = {}
 
     for _, row in ipairs(rows or {}) do
-        local item = vehicleEntry(row, 'qb')
-        if item then
+        for _, item in ipairs(vehicleEntries(row, 'qb')) do
             addCategory(catalog.categories, categoryMap, item.type, item.typeLabel)
             catalog.items[#catalog.items + 1] = item
         end
@@ -1049,8 +1072,7 @@ local function esxVehicleCatalog(player)
     local categoryMap = {}
 
     for _, row in ipairs(rows or {}) do
-        local item = vehicleEntry(row, 'esx')
-        if item then
+        for _, item in ipairs(vehicleEntries(row, 'esx')) do
             addCategory(catalog.categories, categoryMap, item.type, item.typeLabel)
             catalog.items[#catalog.items + 1] = item
         end
