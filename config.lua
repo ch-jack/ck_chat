@@ -48,6 +48,29 @@ CKChatConfig.FrameItems = CKChatConfig.FrameItems or {
     RemoveOnUse = true,
 }
 
+-- NUI 布局和空闲隐藏配置。
+-- Anchor 支持: top-left / top-right / bottom-left / bottom-right。
+-- Width、MinWidth、MaxWidth、MessageListHeight 等值直接使用 CSS 尺寸单位。
+CKChatConfig.UI = CKChatConfig.UI or {
+    -- 输入框关闭后，聊天窗口空闲多少毫秒自动隐藏；填 0 表示不自动隐藏。
+    AutoHideMs = 7000,
+
+    -- 聊天窗口宽度限制。
+    Width = '38vw',
+    MinWidth = 'min(430px, 96vw)',
+    MaxWidth = 'none',
+
+    -- 消息列表高度限制。
+    MessageListHeight = '23vh',
+    MessageListMinHeight = '170px',
+
+    -- 窗口锚点和边距。Top 用于顶部锚点，Bottom 用于底部锚点。
+    Anchor = 'top-right',
+    Top = '32%',
+    Bottom = '0',
+    Side = '0',
+}
+
 -- 车库读取配置。
 CKChatConfig.Garage = CKChatConfig.Garage or {
     -- auto = 跟随 CKChatConfig.Framework；也可以强制 esx/qb

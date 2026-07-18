@@ -7,7 +7,18 @@
     const RESOURCE = typeof GetParentResourceName === 'function' ? GetParentResourceName() : 'ck_chat';
     const MAX_MESSAGES = 120;
     const MAX_REDPACKET_AMOUNT = 50000;
-    const AUTO_HIDE_MS = 7000;
+    const DEFAULT_UI_CONFIG = Object.freeze({
+        AutoHideMs: 7000,
+        Width: '38vw',
+        MinWidth: 'min(430px, 96vw)',
+        MaxWidth: 'none',
+        MessageListHeight: '23vh',
+        MessageListMinHeight: '170px',
+        Anchor: 'top-right',
+        Top: '32%',
+        Bottom: '0',
+        Side: '0'
+    });
     const FRAME_IMAGE_ROOT = `nui://${RESOURCE}/html`;
     const FRAME_EXTENSIONS = ['webp', 'png', 'gif', 'jpg', 'jpeg'];
     const EMOJIS = ['😀', '😂', '😎', '😍', '😡', '😭', '👍', '👀', '🔥', '🎉', '🚗', '🏁', '💰', '📍', '⭐', '✅', '❌', '？', '！', 'OK'];
@@ -55,6 +66,7 @@
     const refs = {};
     let activeDetailFloat = null;
     let idleTimer = null;
+    let autoHideMs = DEFAULT_UI_CONFIG.AutoHideMs;
 
     function post(name, payload) {
         if (TEST_MODE && window.CKChatTest && typeof window.CKChatTest.handlePost === 'function') {
@@ -404,6 +416,38 @@
         refs.ckChat.classList.toggle('idle-hidden', state.idleHidden);
     }
 
+    function cssConfigValue(value, fallback) {
+        const text = String(value == null ? fallback : value).trim();
+        if (!text || text.length > 80 || /[;{}<>]/.test(text)) return fallback;
+        return text;
+    }
+
+    function applyUiConfig(config) {
+        const ui = config && typeof config === 'object' ? config : {};
+        const hideValue = Number(ui.AutoHideMs);
+        autoHideMs = Number.isFinite(hideValue)
+            ? Math.max(0, Math.floor(hideValue))
+            : DEFAULT_UI_CONFIG.AutoHideMs;
+
+        const anchor = String(ui.Anchor || DEFAULT_UI_CONFIG.Anchor).toLowerCase();
+        const anchors = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+        refs.ckChat.dataset.anchor = anchors.includes(anchor) ? anchor : DEFAULT_UI_CONFIG.Anchor;
+
+        const style = refs.ckChat.style;
+        style.setProperty('--chat-ui-width', cssConfigValue(ui.Width, DEFAULT_UI_CONFIG.Width));
+        style.setProperty('--chat-ui-min-width', cssConfigValue(ui.MinWidth, DEFAULT_UI_CONFIG.MinWidth));
+        style.setProperty('--chat-ui-max-width', cssConfigValue(ui.MaxWidth, DEFAULT_UI_CONFIG.MaxWidth));
+        style.setProperty('--chat-ui-message-height', cssConfigValue(ui.MessageListHeight, DEFAULT_UI_CONFIG.MessageListHeight));
+        style.setProperty('--chat-ui-message-min-height', cssConfigValue(ui.MessageListMinHeight, DEFAULT_UI_CONFIG.MessageListMinHeight));
+        style.setProperty('--chat-ui-top', cssConfigValue(ui.Top, DEFAULT_UI_CONFIG.Top));
+        style.setProperty('--chat-ui-bottom', cssConfigValue(ui.Bottom, DEFAULT_UI_CONFIG.Bottom));
+        style.setProperty('--chat-ui-side', cssConfigValue(ui.Side, DEFAULT_UI_CONFIG.Side));
+
+        state.idleHidden = false;
+        updateShell();
+        resetIdleTimer();
+    }
+
     function resetIdleTimer() {
         if (idleTimer) {
             clearTimeout(idleTimer);
@@ -412,11 +456,12 @@
         if (!refs.ckChat || state.hidden || state.screenHidden) return;
         state.idleHidden = false;
         updateShell();
+        if (autoHideMs <= 0) return;
         idleTimer = setTimeout(() => {
             if (state.inputOpen) return;
             state.idleHidden = true;
             updateShell();
-        }, AUTO_HIDE_MS);
+        }, autoHideMs);
     }
 
     function renderChannels() {
@@ -991,6 +1036,7 @@
     }
 
     function applyBootstrap(data) {
+        applyUiConfig(data.ui || {});
         state.me = data.me || state.me || {};
         state.onlinePlayers = Array.isArray(data.onlinePlayers) ? data.onlinePlayers : [];
         const catalogs = data.catalogs || {};

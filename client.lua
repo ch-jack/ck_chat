@@ -3,6 +3,7 @@
 -- 联系方式: QQ 2518926462
 
 local Framework = ChatClientFramework
+local Config = CKChatConfig or {}
 
 local chatInputActive = false
 local chatInputActivating = false
@@ -160,8 +161,9 @@ end)
 RegisterNetEvent('ck_chat:bootstrap')
 AddEventHandler('ck_chat:bootstrap', function(data)
     data = data or {}
+    data.ui = Config.UI or {}
     applyFrameworkPermissions(data)
-    nuiMessage({ type = 'ck_chat:bootstrap', data = data or {} })
+    nuiMessage({ type = 'ck_chat:bootstrap', data = data })
 end)
 
 RegisterNetEvent('ck_chat:catalog')

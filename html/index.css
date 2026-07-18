@@ -22,6 +22,14 @@
     --chat-blue: var(--chat-accent);
     --chat-shadow: 0 4px 12px rgba(24, 38, 70, 0.12);
     --chat-radius: 8px;
+    --chat-ui-width: 38vw;
+    --chat-ui-min-width: min(430px, 96vw);
+    --chat-ui-max-width: none;
+    --chat-ui-message-height: 23vh;
+    --chat-ui-message-min-height: 170px;
+    --chat-ui-top: 32%;
+    --chat-ui-bottom: 0;
+    --chat-ui-side: 0;
 }
 
 * {
@@ -56,13 +64,41 @@ button {
 
 .ck-chat {
     position: fixed;
-    right: 0;
-    top: 32%;
-    width: 38vw;
-    min-width: min(430px, 96vw);
-    max-width: none;
+    right: var(--chat-ui-side);
+    top: var(--chat-ui-top);
+    width: var(--chat-ui-width);
+    min-width: var(--chat-ui-min-width);
+    max-width: var(--chat-ui-max-width);
     pointer-events: none;
     transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.ck-chat[data-anchor="top-left"] {
+    top: var(--chat-ui-top);
+    right: auto;
+    bottom: auto;
+    left: var(--chat-ui-side);
+}
+
+.ck-chat[data-anchor="top-right"] {
+    top: var(--chat-ui-top);
+    right: var(--chat-ui-side);
+    bottom: auto;
+    left: auto;
+}
+
+.ck-chat[data-anchor="bottom-left"] {
+    top: auto;
+    right: auto;
+    bottom: var(--chat-ui-bottom);
+    left: var(--chat-ui-side);
+}
+
+.ck-chat[data-anchor="bottom-right"] {
+    top: auto;
+    right: var(--chat-ui-side);
+    bottom: var(--chat-ui-bottom);
+    left: auto;
 }
 
 .ck-chat.hidden,
@@ -174,8 +210,8 @@ button {
 }
 
 .chat-window {
-    height: 23vh;
-    min-height: 170px;
+    height: var(--chat-ui-message-height);
+    min-height: var(--chat-ui-message-min-height);
     border: 0;
     background: transparent;
     box-shadow: none;
@@ -1186,12 +1222,4 @@ button {
     color: var(--chat-muted);
     line-height: 1.35;
     word-break: break-word;
-}
-
-@media (max-width: 1280px) {
-    .ck-chat {
-        right: 0;
-        width: 42vw;
-        min-width: 400px;
-    }
 }

@@ -82,6 +82,19 @@ CKChatConfig.FrameItems = {
     RemoveOnUse = true,
 }
 
+CKChatConfig.UI = {
+    AutoHideMs = 7000,
+    Width = '38vw',
+    MinWidth = 'min(430px, 96vw)',
+    MaxWidth = 'none',
+    MessageListHeight = '23vh',
+    MessageListMinHeight = '170px',
+    Anchor = 'top-right',
+    Top = '32%',
+    Bottom = '0',
+    Side = '0',
+}
+
 CKChatConfig.Garage = {
     Framework = 'auto',
     OnlyStored = true,
@@ -99,6 +112,11 @@ CKChatConfig.Garage = {
 - `FrameItems.AvatarItem`: ox_inventory 头像框道具名。
 - `FrameItems.ChatBoxItem`: ox_inventory 聊天框道具名。
 - `FrameItems.RemoveOnUse`: 使用成功后是否扣除 1 个道具。
+- `UI.AutoHideMs`: 输入关闭后自动隐藏的毫秒数，填 `0` 禁用自动隐藏。
+- `UI.Width / MinWidth / MaxWidth`: 聊天窗口宽度限制，支持 `px`、`vw`、`%`、`min()` 等 CSS 尺寸。
+- `UI.MessageListHeight / MessageListMinHeight`: 消息列表高度和最小高度。
+- `UI.Anchor`: 支持 `top-left`、`top-right`、`bottom-left`、`bottom-right`。
+- `UI.Top / Bottom / Side`: 顶部、底部和左右边距；顶部锚点使用 `Top`，底部锚点使用 `Bottom`。
 - `Garage.OnlyStored`: 只显示入库车辆。ESX 读取 `stored`，QB 读取 `state`。
 - ck_realplate 无需额外开关，固定读取 `realplate`、`realplate2`、`realplate3`。
 
